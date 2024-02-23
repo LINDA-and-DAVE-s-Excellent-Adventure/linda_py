@@ -1,0 +1,6 @@
+[MASTER]
+init-hook="from pylint.config import find_pylintrc ; import sys ; sys.path.append(find_pylintrc())"
+
+[MESSAGES CONTROL]
+# May need to disable other warnings depending on your code 
+disable=missing-docstring, unused-import
