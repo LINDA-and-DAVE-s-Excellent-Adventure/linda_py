@@ -1,5 +1,5 @@
 # lindapy
-Laser Interface Networking Doohickey for AMSAT -- CircuitPython Implementation
+Laser Interface Networking Doohickey for AMSAT -- MicroPython Implementation
 
 ## Overview
 

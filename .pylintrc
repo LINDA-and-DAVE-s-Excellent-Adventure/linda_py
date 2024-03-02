@@ -4,3 +4,17 @@ init-hook="from pylint.config import find_pylintrc ; import sys ; sys.path.appen
 [MESSAGES CONTROL]
 # May need to disable other warnings depending on your code 
 disable=missing-docstring, unused-import
+
+[messages control]
+enable=C0114, # Missing module docstring
+       C0116, # Missing function or method docstring
+       C0103, # Invalid name (e.g., camelCase instead of snake_case)
+       R0903, # Too few public methods
+       R0913, # Too many arguments
+       R0914, # Too many local variables
+       R1705  # Unnecessary "else" after "return"
+
+[design]
+max-args=5,         # Recommended maximum number of arguments 
+max-locals=10,      # Recommended maximum number of local variables
+max-module-lines=200 # Recommended maximum lines in a module
