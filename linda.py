@@ -5,7 +5,7 @@ import math
 import utime
 from micropython import const
 
-from lib.encoding import HammingData
+from libraries.encoding import HammingData
 # from lib.laser import 
 
 # Set up pins
