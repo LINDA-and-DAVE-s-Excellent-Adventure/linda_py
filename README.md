@@ -1,4 +1,4 @@
-# lindapy
+# linda_py
 
 Laser Interface Networking Doohickey for AMSAT -- MicroPython Implementation
 
