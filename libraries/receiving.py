@@ -1,4 +1,5 @@
 from machine import Pin
+from micropython import const
 import utime
 
 TICK_DURATION_MS = 10
@@ -6,8 +7,8 @@ LASER_THRESHOLD_MS = 7
 DETECTOR_PIN = 16
 SWITCH_PIN = 18
 LED_PIN = 21
-START_MARKER = 0xBEEF
-END_MARKER = 0xDEAD
+START_MARKER = const(0xBEEF)
+END_MARKER = const(0xDEAD)
 
 detector = Pin(DETECTOR_PIN, Pin.IN)
 switch = Pin(SWITCH_PIN, Pin.IN, Pin.PULL_UP)
