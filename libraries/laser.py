@@ -1,42 +1,49 @@
-from machine import Pin
+import errno
+from machine import Pin, mem32
 from utime import sleep_us, ticks_us, sleep_ms, ticks_ms
 from time import sleep
 from sys import stdout
+import utime
 import struct
+import _thread
+import rp2
+import gc
 
 # Testing on Thing Plus
-# RLED_PIN = 21
+RLED_PIN = 19
+GLED_PIN = 18
+BLED_PIN = 17
+DETECTOR_PIN = 20
+LASER_PIN = 21
+BUTTON_PIN = 22
+
+# # Testing on WeAct RP2040
+# RLED_PIN = 18
 # GLED_PIN = 19
-# DETECTOR_PIN = 16
-# LASER_PIN = 25
-# SWITCH_PIN = 18
+# BLED_PIN = 20
+# DETECTOR_PIN = 7
+# LASER_PIN = 29
+# BUTTON_PIN = 12
 
-# Testing on WeAct RP2040
-RLED_PIN = 18
-GLED_PIN = 19
-BLED_PIN = 20
-SWITCH_PIN = 12
-LASER_PIN = 29
-DETECTOR_PIN = 7
+PIO_FREQ_HZ = 2000
+TICK_TIME = 7
+PADDING_TIME = 3
 
-TICK_TIME = 25
-PADDING_TIME = 25
-
-TICK_DURATION_MS = 3
-TICK_THRESHOLD_MS = 2
+TICK_DURATION_MS = 20
+TICK_THRESHOLD_MS = 10
 
 TX_RX_STATE = False
 RECORDING = False
 
-led = Pin(RLED_PIN, Pin.OUT)
-laser = Pin(LASER_PIN, Pin.OUT)
-switch = Pin(SWITCH_PIN, Pin.IN)
-detector = Pin(DETECTOR_PIN, Pin.IN)
-green = Pin(GLED_PIN, Pin.OUT)
-
+rled = Pin(RLED_PIN, Pin.OUT)
+gled = Pin(GLED_PIN, Pin.OUT)
+bled = Pin(BLED_PIN, Pin.OUT)
+button = Pin(BUTTON_PIN, Pin.IN)
+# laser = Pin(LASER_PIN, Pin.OUT)
+# detector = Pin(DETECTOR_PIN, Pin.IN)
 class LindaLaser:
     def __init__(self, loiter_mv: memoryview, inbox_mv: memoryview, outbox_mv: memoryview, 
-                 laser_pin: int, detector_pin: int) -> None:
+                 laser_pin: int=LASER_PIN, detector_pin: int=DETECTOR_PIN) -> None:
         self.loiter = loiter_mv
         self.inbox = inbox_mv
         self.outbox = outbox_mv
@@ -50,7 +57,7 @@ class LindaLaser:
 
     def _init_pins(self, laser_pin: int, detector_pin: int) -> None:
         self.laser = Pin(laser_pin, Pin.OUT)
-        self.detector = Pin(detector_pin, Pin.IN)
+        # self.detector = Pin(detector_pin, Pin.IN)
 
     def _print_outbox(self, chunk_size: int=256) -> None:
         start = 0
@@ -77,14 +84,32 @@ class LindaLaser:
         Args:
             outbox_mv (memoryview): Memoryview of a bytearray() containing data to transmit
         """
-        for byte in outbox_mv[start_idx:end_idx]:
-            print(f"{chr(byte)}")
+        print(f"Transmitting {end_idx-start_idx} bytes! Should take {(end_idx-start_idx)*8*(TICK_TIME) / 1000:.2f} seconds")
+        rled.value(0)
+        bled.value(0)
+        gled.value(0)
+        gc.collect()
+        start_time = utime.ticks_ms()
+        for byte_idx in range(start_idx,end_idx):
+            current_byte = outbox_mv[byte_idx]
+            print(chr(current_byte), end='')
             for i in range(7, -1, -1):
-                # Extract the bit value
-                led.value((byte >> i) & 1)
-                self.laser.value((byte >> i) & 1)
-                sleep_ms(TICK_TIME)
-            sleep_ms(PADDING_TIME)
+                try: 
+                    # Extract the bit value
+                    bit = (current_byte >> i) & 1
+                    rled.value(bit)
+                    self.laser.value(bit)
+                    sleep_ms(TICK_TIME)
+                except IOError as e:
+                    if e.errno == errno.EIO:
+                        print("Had that weird input error")
+        end_time = utime.ticks_ms()
+        elapsed_time = utime.ticks_diff(end_time, start_time)
+        print(f"\nActual transmit duration: {elapsed_time/1000} ms")
+        gc.collect()
+        rled.value(0)
+        # self.laser.value(0)
+        gled.value(1)
 
     def _receive(self, loiter_mv: memoryview, inbox_mv: memoryview) -> None:
         print("listening")
@@ -93,10 +118,9 @@ class LindaLaser:
         """
         Transmit the contents of self.outbox
         """
-        print(f"Transmitting: {self.outbox}")
-        self._transmit(self.outbox)
+        self._transmit(self.outbox, end_idx=256)
 
-    def read_ascii_to_outbox(self, msg: str, idx: int) -> None:
+    def _read_ascii_to_outbox(self, msg: str, idx: int) -> None:
         for i, char in enumerate(msg):
             if idx+i >= len(self.outbox):
                 break
@@ -105,46 +129,62 @@ class LindaLaser:
     def start(self) -> None:
         print("Starting Laser loop")
 
-def flash_led_bytearray(array: bytearray):
-    for byte in array:
-        for bit in bin(byte)[2:]:
-            led.value(int(bit))
-            laser.value(int(bit))
-            sleep_us(TICK_TIME)
+    def blink_led(self):
+        for _ in range(1):
+            gled.value(0)
+            bled.value(0)
+            rled.value(1)
+            self.laser.value(1)
+            # sm.exec("set(pins, 1)")
+            sleep_ms(500)
+            rled.value(0)
+            bled.value(0)
+            gled.value(1)
+            sleep_ms(500)
+            rled.value(0)
+            gled.value(0)
+            bled.value(1)
+            self.laser.value(0)
+            # sm.exec("set(pins, 0)")
+            sleep_ms(500)
+        rled.value(0)
+        gled.value(0)
+        bled.value(0)
 
-            led.value(0)
-            laser.value(0)
-            sleep_us(PADDING_TIME)
-
-def listen_tick():
-    start_time = ticks_us()
-    while ticks_us() - start_time < TICK_DURATION_MS:
-        if not detector.value() == 1:
-            led.value(1)
-            if ticks_us() - start_time >= TICK_THRESHOLD_MS:
-                print("Laser detected for at least 2ms")
-                break
-        else:
-            led.value(0)
-        sleep_us(1)
-
-def blink_led():
-    for _ in range(5):
-        led.value(1)
-        laser.value(1)
-        sleep_ms(500)
-        led.value(0)
-        laser.value(0)
-        sleep_ms(500)
+# def listen_tick():
+#     start_time = ticks_us()
+#     while ticks_us() - start_time < TICK_DURATION_MS:
+#         if not detector.value() == 1:
+#             rled.value(1)
+#             if ticks_us() - start_time >= TICK_THRESHOLD_MS:
+#                 print("Laser detected for at least 2ms")
+#                 break
+#         else:
+#             rled.value(0)
+#         sleep_us(1)
 
 inbox = bytearray(64000)
 outbox = bytearray(64000)
 loiter = memoryview(inbox)[:64]
 
-test_linda = LindaLaser(memoryview(loiter), memoryview(inbox), memoryview(outbox), 
+tl = LindaLaser(loiter, memoryview(inbox), memoryview(outbox), 
                         LASER_PIN, DETECTOR_PIN)
 
-test_linda.read_ascii_to_outbox('When Stubb had departed, Ahab stood for a while leaning over the bulwarks; and then, as had been usual with him of late, calling a sailor of the watch, he sent him below for his ivory stool, and also his pipe. Lighting the pipe at the binnacle lamp and planting the stool on the weather side of the deck, he sat and smoked. \
+tl._read_ascii_to_outbox('When Stubb had departed, Ahab stood for a while leaning over the bulwarks; and then, as had been usual with him of late, calling a sailor of the watch, he sent him below for his ivory stool, and also his pipe. Lighting the pipe at the binnacle lamp and planting the stool on the weather side of the deck, he sat and smoked. \
     In old Norse time, the thrones of the sea-loving Danish kinds were fabricated, saith tradition, of the tusks of the narwhale. How could one look at Ahab then, seated on that tripod of bones, without bethinking him of the royalty it symbolized? For a Khan of the plank, and a king of the sea and a great lord of Leviathans was Ahab. \
     Some moments passed, during which the thick vapor came from his mounth in quick and constant puffs, which blew back again into his face. "How now", he soliloquized at last, withdrawing the tube, "this smoking no longer soothes. Oh, my pipe! hard must it go with me if thy charm be gone! Here have I been unconsciously toiling, not pleasuring- aye, and ignorantly smmoking to the windward all the while; to windward, and with such nervous whiffs, as if, like the dying whale, my final jets were the strongest and the fullest of trouble. What business have I with this pipe? This thing that is meant for sereneness, to send up mild white vapors among mild white hairs, not among torn iron-grey locks like mine. I\'ll smoke no more-"\
     He tossed the still lighted pipe into the sea. The fire hissed in the waves; the same instant the ship shot by the bubble the sinking pipe made. With slouched hat, Ahab lurchingly paced the planks.', 0)
+
+# Set up PIO for accurate timing of laser pulses
+@rp2.asm_pio(set_init=rp2.PIO.OUT_LOW)
+def pio_prog():
+    pass
+
+# Create and start a StateMachine for the laser PIO
+# sm = rp2.StateMachine(0, pio_prog, freq=PIO_FREQ_HZ, set_base=Pin(29))
+# sm.active(1)
+
+gc.disable()
+
+tl.blink_led()
+# tl.transmit_outbox()
