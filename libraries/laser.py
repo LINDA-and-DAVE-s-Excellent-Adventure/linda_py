@@ -1,13 +1,11 @@
-import errno
 from machine import Pin, mem32
-from utime import sleep_us, ticks_us, sleep_ms, ticks_ms
-from time import sleep
-from sys import stdout
+from utime import sleep_ms
 import utime
-import struct
-import _thread
 import rp2
 import gc
+import errno
+
+from memory import InboxBuffer, OutboxBuffer
 
 # Testing on Thing Plus
 RLED_PIN = 19
@@ -39,14 +37,11 @@ rled = Pin(RLED_PIN, Pin.OUT)
 gled = Pin(GLED_PIN, Pin.OUT)
 bled = Pin(BLED_PIN, Pin.OUT)
 button = Pin(BUTTON_PIN, Pin.IN)
-# laser = Pin(LASER_PIN, Pin.OUT)
-# detector = Pin(DETECTOR_PIN, Pin.IN)
 class LindaLaser:
-    def __init__(self, loiter_mv: memoryview, inbox_mv: memoryview, outbox_mv: memoryview, 
+    def __init__(self, inbox: InboxBuffer, outbox: OutboxBuffer, 
                  laser_pin: int=LASER_PIN, detector_pin: int=DETECTOR_PIN) -> None:
-        self.loiter = loiter_mv
-        self.inbox = inbox_mv
-        self.outbox = outbox_mv
+        self.inbox = inbox
+        self.outbox = outbox
         self._init_pins(laser_pin, detector_pin)
 
     def __repr__(self) -> str:
@@ -58,14 +53,6 @@ class LindaLaser:
     def _init_pins(self, laser_pin: int, detector_pin: int) -> None:
         self.laser = Pin(laser_pin, Pin.OUT)
         # self.detector = Pin(detector_pin, Pin.IN)
-
-    def _print_outbox(self, chunk_size: int=256) -> None:
-        start = 0
-        while start < len(self.outbox):
-            chunk = self.outbox[start: start+chunk_size]
-            decoded_chunk = bytes(chunk).decode('ascii')
-            stdout.write(decoded_chunk)
-        start += chunk_size
 
     def _toggle_tx(self, tx_toggle: bool) -> None:
         """
@@ -118,13 +105,7 @@ class LindaLaser:
         """
         Transmit the contents of self.outbox
         """
-        self._transmit(self.outbox, end_idx=256)
-
-    def _read_ascii_to_outbox(self, msg: str, idx: int) -> None:
-        for i, char in enumerate(msg):
-            if idx+i >= len(self.outbox):
-                break
-            self.outbox[idx+i] = ord(char)
+        self._transmit(self.outbox.msg, end_idx=256)
 
     def start(self) -> None:
         print("Starting Laser loop")
@@ -163,28 +144,16 @@ class LindaLaser:
 #             rled.value(0)
 #         sleep_us(1)
 
-inbox = bytearray(64000)
-outbox = bytearray(64000)
-loiter = memoryview(inbox)[:64]
+inbox = InboxBuffer(64000)
+outbox = OutboxBuffer(64000)
 
-tl = LindaLaser(loiter, memoryview(inbox), memoryview(outbox), 
-                        LASER_PIN, DETECTOR_PIN)
+tl = LindaLaser(inbox, outbox, LASER_PIN, DETECTOR_PIN)
 
-tl._read_ascii_to_outbox('When Stubb had departed, Ahab stood for a while leaning over the bulwarks; and then, as had been usual with him of late, calling a sailor of the watch, he sent him below for his ivory stool, and also his pipe. Lighting the pipe at the binnacle lamp and planting the stool on the weather side of the deck, he sat and smoked. \
+tl.outbox._read_ascii('When Stubb had departed, Ahab stood for a while leaning over the bulwarks; and then, as had been usual with him of late, calling a sailor of the watch, he sent him below for his ivory stool, and also his pipe. Lighting the pipe at the binnacle lamp and planting the stool on the weather side of the deck, he sat and smoked. \
     In old Norse time, the thrones of the sea-loving Danish kinds were fabricated, saith tradition, of the tusks of the narwhale. How could one look at Ahab then, seated on that tripod of bones, without bethinking him of the royalty it symbolized? For a Khan of the plank, and a king of the sea and a great lord of Leviathans was Ahab. \
     Some moments passed, during which the thick vapor came from his mounth in quick and constant puffs, which blew back again into his face. "How now", he soliloquized at last, withdrawing the tube, "this smoking no longer soothes. Oh, my pipe! hard must it go with me if thy charm be gone! Here have I been unconsciously toiling, not pleasuring- aye, and ignorantly smmoking to the windward all the while; to windward, and with such nervous whiffs, as if, like the dying whale, my final jets were the strongest and the fullest of trouble. What business have I with this pipe? This thing that is meant for sereneness, to send up mild white vapors among mild white hairs, not among torn iron-grey locks like mine. I\'ll smoke no more-"\
-    He tossed the still lighted pipe into the sea. The fire hissed in the waves; the same instant the ship shot by the bubble the sinking pipe made. With slouched hat, Ahab lurchingly paced the planks.', 0)
-
-# Set up PIO for accurate timing of laser pulses
-@rp2.asm_pio(set_init=rp2.PIO.OUT_LOW)
-def pio_prog():
-    pass
-
-# Create and start a StateMachine for the laser PIO
-# sm = rp2.StateMachine(0, pio_prog, freq=PIO_FREQ_HZ, set_base=Pin(29))
-# sm.active(1)
+    He tossed the still lighted pipe into the sea. The fire hissed in the waves; the same instant the ship shot by the bubble the sinking pipe made. With slouched hat, Ahab lurchingly paced the planks.')
 
 gc.disable()
 
 tl.blink_led()
-# tl.transmit_outbox()
