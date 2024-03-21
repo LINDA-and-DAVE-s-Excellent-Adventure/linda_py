@@ -1,38 +1,29 @@
-from machine import Pin 
-from micropython import const
 import _thread
 
 from encoding import HammingData
 from laser import LindaLaser
-# from memory import InboxBuffer, OutboxBuffer
-
-
-# Set up pin values
-# Testing on Thing Plus
-RLED_PIN = 19
-GLED_PIN = 18
-BLED_PIN = 17
-DETECTOR_PIN = 20
-LASER_PIN = 21
-BUTTON_PIN = 22
-
-
-# # Testing on WeAct RP2040
-# RLED_PIN = 18
-# GLED_PIN = 19
-# BLED_PIN = 20
-# SWITCH_PIN = 12
-# LASER_PIN = 29
-# DETECTOR_PIN = 7
+from memory import InboxBuffer, OutboxBuffer
 
 class Linda():
-    def __init__(self):
+    def __init__(self) -> None:
         print("New LINDA top-level controller")
         # Allocate initial buffers
-        # inbox = InboxBuffer(64000)
-        # outbox = OutboxBuffer(64000)
-        # self.laser = LindaLaser(inbox, outbox, LASER_PIN, DETECTOR_PIN)
+        inbox = InboxBuffer(64000)
+        outbox = OutboxBuffer(64000)
+        self.laser = LindaLaser(inbox, outbox)
         # self.i2c = LindaAmsat()
+
+    def _transfer_amsat_buffer_to_outbox(self) -> None:
+        """
+        Copy data from the I2C buffer from the AMSAT to the Laser outbox
+        """
+        pass
+
+    def _transfer_inbox_to_amsat_buffer(self) -> None:
+        """
+        Copy data form the Laser inbox to the AMSAT I2C buffer
+        """
+        pass
 
     def start(self):
         # Start the laser listener loop in its own thread

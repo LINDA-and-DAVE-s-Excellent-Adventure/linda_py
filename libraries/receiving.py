@@ -30,17 +30,16 @@ def process_tick():
 
     received_bits.append(bit_value)
 
-    if len(received_bits) >= 32:
-        word = 0 
-        for i in range(32):
-            word <<= 1  # Shift existing bits
+    if len(received_bits) == 8:
+        word = 0
+        for i in range(8):
+            word <<= i  # Shift existing bits
             word |= received_bits.pop(0)  # Add the next bit
 
         if word == START_MARKER:
             recording = True
         elif word == END_MARKER and recording:
-            recording = False 
-            decode_message(received_bits[:-32])  # Pass bits without the end marker 
+            recording = False
             received_bits.clear()
 
 def transmit_bit(bit):
@@ -76,6 +75,3 @@ def main_loop():
             utime.sleep_ms(TICK_DURATION_MS)
             process_tick()
             print("done with tick")
-
-if __name__ == "__main__":
-    main_loop()
