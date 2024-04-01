@@ -20,9 +20,8 @@ rgb = RGBLED()
 ws = WS2812()
 
 # Main loop for color cycling
-last_button_state = button.value()  # Read initial button state
+last_button_state = button.value() # Read initial button state
 rainbow_mode = True
-
 
 tl = Linda()
 
@@ -34,11 +33,14 @@ tl.laser.outbox._read_ascii('When Stubb had departed, Ahab stood for a while lea
 while True:
     if switch.value():
         laser.value(1)
-        rgb.set_color(0,0,255)
+        rgb.set_color(0,255,0)
         ws.set_color(0,0,0)
         if detector.value() == 0:
-            print("laser!")     
-            ws.set_color(255, 255, 255)       
+            print("laser!")
+            ws.set_color(255, 255, 255)
+            rgb.set_color(255,0,0)
+        else:
+            print("no laser!")     
     else: 
         if rainbow_mode:
             # Rainbow color cycle

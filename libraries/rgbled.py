@@ -38,6 +38,6 @@ class WS2812:
         self.np = neopixel.NeoPixel(self.p, 1) # type: ignore
 
     def set_color(self, r, g, b):
-        self.np[0] = (r, g, b)
+        self.np[0] = (r, g, b) # type: ignore
         self.np.write()
 
