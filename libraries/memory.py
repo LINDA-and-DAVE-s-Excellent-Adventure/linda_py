@@ -2,9 +2,8 @@
 import gc
 from sys import stdout
 
-OUTBOX_HEADER_SIZE = 3 
+OUTBOX_HEADER_SIZE = 3
 INBOX_HEADER_SIZE = 7
-
 
 
 class MemoryBuffer:
@@ -32,6 +31,10 @@ class MemoryBuffer:
             int: Integer representation of the total contents of the given memoryview
         """
         return int.from_bytes(mem, 'big')
+    
+class AmsatI2CBuffer(MemoryBuffer):
+    def __init__(self, size_bytes) -> None:
+        super().__init__(size_bytes)
 
 class OutboxBuffer(MemoryBuffer):
     def __init__(self, size_bytes) -> None:
@@ -112,8 +115,6 @@ class OutboxBuffer(MemoryBuffer):
             self.msg_ready[0] = 1
         else:
             self.msg_ready[0] = 0
-
-    
 
 class InboxBuffer(MemoryBuffer):
     def __init__(self, size_bytes) -> None:

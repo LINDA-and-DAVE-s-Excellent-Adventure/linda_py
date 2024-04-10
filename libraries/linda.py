@@ -2,7 +2,8 @@ import _thread
 
 from encoding import HammingData
 from laser import LindaLaser
-from memory import InboxBuffer, OutboxBuffer
+from iic import LindaI2C
+from memory import AmsatI2CBuffer, InboxBuffer, OutboxBuffer
 
 class Linda():
     def __init__(self) -> None:
@@ -10,8 +11,9 @@ class Linda():
         # Allocate initial buffers
         inbox = InboxBuffer(64000)
         outbox = OutboxBuffer(64000)
+        amsat_buff = AmsatI2CBuffer(32000)
         self.laser = LindaLaser(inbox, outbox)
-        # self.i2c = LindaAmsat()
+        self.i2c = LindaI2C(amsat_buff)
 
     def _transfer_amsat_buffer_to_outbox(self) -> None:
         """

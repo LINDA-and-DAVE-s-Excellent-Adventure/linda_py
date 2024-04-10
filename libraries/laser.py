@@ -1,6 +1,6 @@
-from machine import Pin, Signal
+from machine import Pin, Signal, Timer
 from utime import sleep_us, sleep_us, ticks_us, ticks_us, ticks_diff
-from micropython import const
+from micropython import const, alloc_emergency_exception_buf
 import gc
 
 from memory import InboxBuffer, OutboxBuffer
@@ -22,12 +22,19 @@ MSG_BEGIN_DURATION_US = LASER_TICK_TIME_US * 16
 # Keep the start time of a Rx transmission globally
 RX_START_TIME = None
 
-class LindaLaser:
+# Set up micropython interrupt logic & place to store incoming bits
+alloc_emergency_exception_buf(100)
+RX_BYTE = bytearray(8)
+RX_BIT_IDX = 0
+
+class LindaLaser(object):
     def __init__(self, inbox: InboxBuffer, outbox: OutboxBuffer, 
                  laser_pin: int=LASER_PIN, detector_pin: int=DETECTOR_PIN) -> None:
         self.inbox = inbox
         self.outbox = outbox
         self.tx_toggle = True
+        # Set up the timer to handle Rx timing, will be init'd when needed
+        self.rx_timer = Timer()
         self._init_pins(laser_pin, detector_pin)
 
     def __repr__(self) -> str:
@@ -40,6 +47,13 @@ class LindaLaser:
         self.laser = Pin(laser_pin, Pin.OUT)
         # The laser sensor modules output LOW when it sees a laser and HIGH otherwise, so invert it
         self.detector = Signal(detector_pin, Pin.IN, invert=True)
+
+    def _init_rx_timer(self):
+        # 200hz is 5ms ticks
+        self.rx_timer.init(freq=200, mode=Timer.PERIODIC, callback=self._rx_tick)
+
+    def _deinit_rx_timer(self):
+        self.rx_timer.deinit()
 
     def _toggle_tx(self, tx_toggle: bool) -> None:
         """
@@ -109,7 +123,12 @@ class LindaLaser:
         else:
             self._transmit_buffer(self.outbox._msg, end_idx=msg_len)
 
-    def _listen_tick(self, detection_mode=False) -> int: 
+    def _rx_tick(self, timer) -> None:
+        global RX_BIT_IDX, RX_BYTE
+        RX_BYTE[RX_BIT_IDX] = self.detector.value()
+        RX_BIT_IDX += 1
+
+    def _idle_tick(self) -> None: 
         """
         Listens for one LASER_TICK_TIME_US duration, and returns the integer value of detector signal during
           that tick
@@ -117,24 +136,17 @@ class LindaLaser:
         Returns:
             int: Integer 1 or 0 of whether the detector saw a laser during this tick
         """
-        start_time = ticks_us()
         tick_val = self.detector.value()
-        if detection_mode:
-            if tick_val == 1:
-                global RX_START_TIME
-                if RX_START_TIME is None:
-                    RX_START_TIME = ticks_us()
-                elif ticks_us() - RX_START_TIME >= MSG_BEGIN_DURATION_US:
-                    self.inbox.set_recording(True)
-                    RX_START_TIME = None
-                    print("NOW RECORDING!")
-                    return tick_val
-        else:
-            # Loop and wait for a whole laser tick, setting the tick_val continuously
-            while(ticks_diff(ticks_us(), start_time) < LASER_TICK_TIME_US):
-                tick_val = self.detector.value()
-
-        return tick_val
+        if tick_val == 1:
+            global RX_START_TIME
+            if RX_START_TIME is None:
+                RX_START_TIME = ticks_us()
+            else:
+                while tick_val == 1:
+                    if (ticks_us() - RX_START_TIME >= MSG_BEGIN_DURATION_US):
+                        print("NOW RECORDING!")
+                        self.inbox.set_recording(True)
+                        RX_START_TIME = None
 
     def start(self) -> None:
         print("Starting Laser loop")
@@ -150,37 +162,26 @@ class LindaLaser:
                     continue
             else:
                 # Receiving
-                rx_bits = []
                 while not self.tx_toggle:
                     if self.inbox.recording:
-                        rx_bits.append(self._listen_tick())
-                        if len(rx_bits) == 8:
-                            rx_byte = int("".join(str(bit) for bit in rx_bits), 2)
+                        global RX_BYTE, RX_BIT_IDX
+                        if RX_BIT_IDX == 7:
+                            rx_byte = int("".join(str(bit) for bit in RX_BYTE), 2)
                             self.inbox.rx_byte(rx_byte)
-                            rx_bits.clear()
+                            RX_BYTE = bytearray(8)
+                            RX_BIT_IDX = 0
                             print(f"Rx byte: {rx_byte} {chr(rx_byte)}")
                     else:
-                        print("Detecting...")
-                        self._listen_tick(detection_mode=True)
-
+                        self._idle_tick()
                         sleep_us(IDLE_TICK_TIME_US)
 
                     
 tl = LindaLaser(InboxBuffer(1024), OutboxBuffer(1024))
 tl.tx_toggle = False
 
-# def test_1_sec():
-#     tv = 0
-#     start_time = ticks_us()
-#     print("Start")
-#     while(ticks_diff(ticks_us(), start_time) < 1000000):
-#         pass
-#     duration = ticks_diff(ticks_us(), start_time)/1000000
-#     print(f"Done: {duration} s")
-#     return duration
+g = Pin(18, Pin.OUT)
+def toggle_g(t):
+    g.value(not g.value())
 
-# durations = []
-# for i in range(120):
-#     print(f"{i}: ")
-#     durations.append(test_1_sec())
-# print(sum(durations)/120)
+tim = Timer(-1)
+tim.init(freq=1, mode=Timer.PERIODIC, callback=toggle_g)
