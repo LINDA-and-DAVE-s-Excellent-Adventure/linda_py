@@ -12,7 +12,7 @@ The Laser Interface Networking Doohickey for AMSAT (LINDA) is a subsystem which 
 
 ### Wiring Diagram
 
-Wiring diagram... use your imagination
+![Linda Wiring Diagram](./doc/linda_wiring_diagram_nomodsplit.jpg)
 
 ### Laser Submodule Flowchart
 
