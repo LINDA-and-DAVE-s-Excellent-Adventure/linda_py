@@ -68,6 +68,7 @@ class OutboxBuffer(MemoryBuffer):
         Args:
             _msg (str): ASCII string to save to outbox message buffer
 '        """
+        gc.collect()
         if len(_msg) > len(self._msg):
             print(f"Your message ({len(_msg)} bytes) is larger than the message buffer ({len(self._msg)} bytes)\n"\
                   "The message will be truncated.")
@@ -93,15 +94,15 @@ class OutboxBuffer(MemoryBuffer):
         Returns:
             str: Empty string to signal end of ASCII text and provide newline
         """
+        gc.enable()
         start = 0
         decoded_chunk = ''
-        gc.collect()
         while start < len(self._msg):
             chunk = self._msg[start: start+chunk_size]
             decoded_chunk = bytes(chunk).decode('ascii')
             stdout.write(decoded_chunk)
             start += chunk_size
-        gc.collect()
+        gc.disable()
         return ''
 
     def _set_msg_ready(self, ready:bool=True) -> None:
@@ -180,26 +181,4 @@ class InboxBuffer(MemoryBuffer):
         if self.recording:
             self._msg[self._msg_idx] = byte_int
             self._msg_idx += 1
-        else:
-            self._loiter_byte(byte_int)
-            if self.loiter == 0xbeef:
-                self.set_recording()
-
-
-# to = InboxBuffer(100)
-# import random
-# from utime import sleep_us
-# rx_bits = []
-# while True:
-#     bit = random.randint(0,1)
-#     print(f"Random bit: {bit}")
-#     if len(rx_bits) < 7:
-#         rx_bits.append(bit)
-#     else:
-#         rx_byte = int("".join(str(bit) for bit in rx_bits), 2)
-#         print(f"Recieved 8 bits! Processing byte: {rx_byte} ({chr(rx_byte)})")
-#         to.rx_byte(rx_byte)
-#         rx_bits.clear()
-#     sleep_us(250000)
-
     

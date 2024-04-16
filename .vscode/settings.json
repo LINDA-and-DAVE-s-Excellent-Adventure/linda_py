@@ -5,13 +5,13 @@
         "reportShadowedImports": "none"
     },
     "python.analysis.extraPaths": [
-        "/home/evan/.vscode/extensions/joedevivo.vscode-circuitpython-0.2.0-linux-x64/boards/0x1B4F/0x0025",
+        "/home/evan/.vscode/extensions/joedevivo.vscode-circuitpython-0.2.0-linux-x64/boards/0x1B4F/0x0026",
         "/home/evan/.vscode/extensions/joedevivo.vscode-circuitpython-0.2.0-linux-x64/stubs",
         "/home/evan/.config/Code/User/globalStorage/joedevivo.vscode-circuitpython/bundle/20240411/adafruit-circuitpython-bundle-py-20240411/lib"
     ],
     "circuitpython.board.version": null,
     "circuitpython.board.vid": "0x1B4F",
-    "circuitpython.board.pid": "0x0025",
+    "circuitpython.board.pid": "0x0026",
     "python.linting.enabled": true,
     "python.analysis.typeCheckingMode": "basic",
     "micropico.syncFolder": "",

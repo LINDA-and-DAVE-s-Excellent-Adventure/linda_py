@@ -11,7 +11,7 @@ from libraries.linda import Linda
 button = machine.Pin(BUTTON_PIN, machine.Pin.IN)
 switch = machine.Pin(SWITCH_PIN, machine.Pin.IN)
 detector = machine.Pin(DETECTOR_PIN, machine.Pin.IN)
-laser = machine.Pin(LASER_PIN, machine.Pin.OUT)
+# laser = machine.Pin(LASER_PIN, machine.Pin.OUT)
 
 gc.disable()
 
@@ -31,57 +31,56 @@ tl.laser.outbox._read_ascii('When Stubb had departed, Ahab stood for a while lea
     He tossed the still lighted pipe into the sea. The fire hissed in the waves; the same instant the ship shot by the bubble the sinking pipe made. With slouched hat, Ahab lurchingly paced the planks.')
 
 while True:
-    if switch.value():
-        laser.value(1)
-        rgb.set_color(0,255,0)
-        ws.set_color(0,0,0)
-        if detector.value() == 0:
-            print("laser!")
-            ws.set_color(255, 255, 255)
-            rgb.set_color(255,0,0)
-        else:
-            print("no laser!")     
-    else: 
-        if rainbow_mode:
-            # Rainbow color cycle
-            for i in range(360):
-                if detector.value():
-                    ws.set_color(255, 0, 0)
-                else: 
-                    angle = i * pi / 180
-                    r = int(127.5 * (sin(angle) + 1))
-                    g = int(127.5 * (sin(angle + 2 * pi / 3) + 1))
-                    b = int(127.5 * (sin(angle + 4 * pi / 3) + 1))
-                    rgb.set_color(r, g, b)
-                    ws.set_color(r, g, b)
-                sleep_ms(5)
+    # if switch.value():
+    #     laser.value(1)
+    #     rgb.set_color(0,255,0)
+    #     ws.set_color(0,0,0)
+    #     if detector.value() == 0:
+    #         print("laser!")
+    #         ws.set_color(255, 255, 255)
+    #         rgb.set_color(255,0,0)
+    #     else:
+    #         print("no laser!")     
+    # else: 
+    if rainbow_mode:
+        # Rainbow color cycle
+        for i in range(360):
+            if detector.value():
+                ws.set_color(255, 0, 0)
+            else: 
+                angle = i * pi / 180
+                r = int(127.5 * (sin(angle) + 1))
+                g = int(127.5 * (sin(angle + 2 * pi / 3) + 1))
+                b = int(127.5 * (sin(angle + 4 * pi / 3) + 1))
+                rgb.set_color(r, g, b)
+                ws.set_color(r, g, b)
+            sleep_ms(5)
 
-                # Check for button press during rainbow cycle
-                current_button_state = button.value()
-                if current_button_state != last_button_state and current_button_state == 1:  # Button pressed (active low)
-                    rainbow_mode = False
-                    last_button_state = current_button_state  # Update button state
-                    break  # Exit rainbow loop if button is pressed
-                gc.collect()
-
-        else:
-            rgb.set_color(255,0,0)
-            print(tl.laser.tx_toggle)
-            tl.laser.transmit_outbox(64)
-            tl.laser._toggle_tx(False)
-            # Solid color cycle
-            rgb.set_color(255, 0, 0)  # Red
-            sleep_ms(500)
-            rgb.set_color(0, 255, 0)  # Green
-            sleep_ms(500)
-            rgb.set_color(0, 0, 255)  # Blue
-            sleep_ms(500)
-            rgb.off()
-            sleep_ms(500)
-
-            # Check for button press during solid color cycle
+            # Check for button press during rainbow cycle
             current_button_state = button.value()
-            if current_button_state != last_button_state and current_button_state == 0:  # Button pressed (active low)
-                rainbow_mode = True
+            if current_button_state != last_button_state and current_button_state == 1:  # Button pressed (active low)
+                rainbow_mode = False
                 last_button_state = current_button_state  # Update button state
+                break  # Exit rainbow loop if button is pressed
+            gc.collect()
+
+    else:
+        rgb.set_color(255,0,0)
+        tl.laser.transmit_outbox(64)
+        tl.laser._toggle_tx(False)
+        # Solid color cycle
+        rgb.set_color(255, 0, 0)  # Red
+        sleep_ms(500)
+        rgb.set_color(0, 255, 0)  # Green
+        sleep_ms(500)
+        rgb.set_color(0, 0, 255)  # Blue
+        sleep_ms(500)
+        rgb.off()
+        sleep_ms(500)
+
+        # Check for button press during solid color cycle
+        current_button_state = button.value()
+        if current_button_state != last_button_state and current_button_state == 0:  # Button pressed (active low)
+            rainbow_mode = True
+            last_button_state = current_button_state  # Update button state
     gc.collect()

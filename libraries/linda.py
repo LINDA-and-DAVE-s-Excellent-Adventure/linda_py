@@ -13,7 +13,7 @@ class Linda():
         outbox = OutboxBuffer(64000)
         amsat_buff = AmsatI2CBuffer(32000)
         self.laser = LindaLaser(inbox, outbox)
-        self.i2c = LindaI2C(amsat_buff)
+        # self.i2c = LindaI2C(amsat_buff)
 
     def _transfer_amsat_buffer_to_outbox(self) -> None:
         """
