@@ -12,6 +12,7 @@ class MemoryBuffer:
         data = bytearray(size_bytes)
         # Create a memoryview to it, so we can sub-view the memory in the derived classes
         self._data = memoryview(data)
+        self._data_len = 0
 
     def __str__(self) -> str:
         return "Memory buffer"
@@ -47,15 +48,37 @@ class MemoryBuffer:
         gc.enable()
         start = 0
         decoded_chunk = ''
-        if print_len == -1:
-            print_len = len(self._data)
-        while start < print_len:
-            chunk = self._data[start: start+chunk_size]
-            decoded_chunk = bytes(chunk).decode(encoding)
-            stdout.write(decoded_chunk)
-            start += chunk_size
+        if self._data_len == 0:
+            print("This MemoryBuffer is empty!")
+        else:
+            if print_len == -1:
+                print_len = self._data_len
+            while start < print_len:
+                chunk = self._data[start: start+chunk_size]
+                decoded_chunk = bytes(chunk).decode(encoding)
+                stdout.write(decoded_chunk)
+                start += chunk_size
         gc.disable()
         return ''
+    
+    def _read_ascii(self, _msg: str) -> None:
+        """
+        Write an ASCII string to the memory buffer. 
+
+        Args:
+            _msg (str): ASCII string to save to outbox message buffer
+'        """
+        gc.collect()
+        if len(_msg) > len(self._data):
+            print(f"Your message ({len(_msg)} bytes) is larger than the message buffer ({len(self._data)} bytes)\n"\
+                  "The message will be truncated.")
+        # Set the message length
+        self._data_len = len(_msg)
+        for i, char in enumerate(_msg):
+            if i+1 >= len(self._data):
+                break
+            self._data[i] = ord(char)
+        gc.collect()
         
 class AmsatI2CBuffer(MemoryBuffer):
     def __init__(self, size_bytes) -> None:
@@ -63,11 +86,8 @@ class AmsatI2CBuffer(MemoryBuffer):
 
 class OutboxBuffer(MemoryBuffer):
     def __init__(self, size_bytes) -> None:
-        super().__init__(size_bytes+OUTBOX_HEADER_SIZE)
-        # Byte 0 of _data flags whether _msg is ready to send
-        self.msg_ready = memoryview(self._data[:1])
-        # Byte 1-2 of _data stores length of message (in bytes)
-        self._msg_len = memoryview(self._data[1:3])
+        super().__init__(size_bytes)
+        self.msg_ready = False
         # Bytes 3-n of _data store the outgoing message
         self._msg = memoryview(self._data[3:])
 
@@ -76,65 +96,45 @@ class OutboxBuffer(MemoryBuffer):
     
     def __repr__(self) -> str:
         return f"OutboxBuffer: {len(self._msg)} bytes ({len(self._data)} bytes total)\n\
-                    Message length = {self._memoryview_int(self._msg_len)}\n\
-                    Msg_ready = {bool(self.msg_ready[0])}"
+                    Message length = {self._data_len}\n\
+                    Msg_ready = {self.msg_ready}"
     
     def __bool__(self) -> bool:
-        return bool(self.msg_ready[0])
+        return self.msg_ready
     
     def __len__(self) -> int:
         # Return the length of the message
-        return self._memoryview_int(self._msg_len)
-
-    def _read_ascii(self, _msg: str) -> None:
-        """
-        Write an ASCII string to the outbox. Updates 
-
-        Args:
-            _msg (str): ASCII string to save to outbox message buffer
-'        """
-        gc.collect()
-        if len(_msg) > len(self._msg):
-            print(f"Your message ({len(_msg)} bytes) is larger than the message buffer ({len(self._msg)} bytes)\n"\
-                  "The message will be truncated.")
-        # Set the message length
-        length_bytes = len(_msg).to_bytes(2, 'big')
-        for i,byte in enumerate(length_bytes):
-            self._msg_len[i] = byte
-        for i, char in enumerate(_msg):
-            if i+1 >= len(self._msg):
-                break
-            self._msg[i] = ord(char)
-        gc.collect()
+        return self._data_len
 
     def _set_msg_ready(self, ready:bool=True) -> None:
         """
-        Sets the messsage ready flag in the outbox header
+        Sets the messsage ready flag
 
         Args:
             ready (bool, optional): Whether the outbox _msg is ready to send. Defaults to True.
         """
         if ready:
-            self.msg_ready[0] = 1
+            self.msg_ready = True
         else:
-            self.msg_ready[0] = 0
+            self.msg_ready = False
 
 class InboxBuffer(MemoryBuffer):
     def __init__(self, size_bytes) -> None:
-        super().__init__(size_bytes+INBOX_HEADER_SIZE)
-        self.msg_len = 0
-        self.msg_idx = 0
+        super().__init__(size_bytes)
         self.recording = False
 
     def __str__(self) -> str:
-        return self._print_data_ascii(self.msg_len)
+        return self._print_data_ascii()
     
     def __repr__(self) -> str:
         return super().__repr__()
     
+    def __len__(self) -> int:
+        return self._data_len
+    
     def set_recording(self, recording:bool=True) -> None:
         """
-        Set the recording flag in the inbox header
+        Set the recording flag
 
         Args:
             recording (bool, optional): Whether to record incoming data. Defaults to True.
@@ -144,9 +144,3 @@ class InboxBuffer(MemoryBuffer):
         else:
             self.recording = 0
         self.recording = bool(self.recording)
-    
-    def rx_byte(self, byte_int: int) -> None:
-        if self.recording:
-            self._data[self.msg_idx] = byte_int
-            self.msg_idx += 1
-    
