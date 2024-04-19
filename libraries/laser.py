@@ -1,11 +1,10 @@
 from machine import Pin, bitstream, time_pulse_us
 from utime import ticks_us, ticks_diff
-from micropython import const
 import gc
 import array
 
 from memory import InboxBuffer, OutboxBuffer
-from gpio import LASER_PIN, DETECTOR_PIN, SWITCH_PIN
+from gpio import LASER_PIN, DETECTOR_PIN
 
 gc.disable()
 
@@ -40,8 +39,6 @@ class LindaLaser(object):
         # The laser sensor modules output LOW when it sees a laser and HIGH otherwise
         self.detector = Pin(detector_pin, Pin.IN, pull=Pin.PULL_UP)
         self.detector.irq(handler=self._rx_bitstream, trigger=Pin.IRQ_FALLING)
-        # Switch for debugging
-        self.switch = Pin(SWITCH_PIN, Pin.IN)
 
     def _toggle_tx(self, tx_toggle: bool) -> None:
         """
@@ -104,6 +101,7 @@ class LindaLaser(object):
         """
         rx_byte = int()
         self.rx_flag = True
+        self.laser.on()
         start = ticks_us()
         while ticks_diff(ticks_us(), start) < (duration*1000000):
             if len(self.rx_byte) == 8:
@@ -112,6 +110,7 @@ class LindaLaser(object):
                 self.rx_byte = array.array('i')
                 print(rx_byte, chr(rx_byte))
         gc.collect()
+        self.laser.off()
 
 
     def start(self) -> None:
@@ -137,30 +136,30 @@ class LindaLaser(object):
                         print(rx_byte, chr(rx_byte))
                     
 tl = LindaLaser(InboxBuffer(1024), OutboxBuffer(1024))
-tl.tx_toggle = False
-tl.rx_flag = True
-tl.laser.on()
-g = Pin(18, Pin.OUT)
-r = Pin(19, Pin.OUT)
+# tl.tx_toggle = False
+# tl.rx_flag = True
+# tl.laser.on()
+# g = Pin(18, Pin.OUT)
+# r = Pin(19, Pin.OUT)
 
-rx_byte = array.array('i')
-rx_next_bit = -1
-rising = False
+# rx_byte = array.array('i')
+# rx_next_bit = -1
+# rising = False
 
-def toggle_g(t):
-    g.value(not g.value())
+# def toggle_g(t):
+#     g.value(not g.value())
 
 
-test = bytearray('hello world!'.encode())
+# test = bytearray('hello world!'.encode())
 
-det = Pin(20, Pin.IN, pull=Pin.PULL_UP)
-bitstream_max_pulse = int((BITSTREAM_TIMING[2] + BITSTREAM_TIMING[3]) / 1000)
+# det = Pin(20, Pin.IN, pull=Pin.PULL_UP)
+# bitstream_max_pulse = int((BITSTREAM_TIMING[2] + BITSTREAM_TIMING[3]) / 1000)
 
-def bitstream_dur(t):
-    tick_dur = time_pulse_us(det, 0, bitstream_max_pulse)
-    rx_byte.append(1 if (abs(tick_dur - BITSTREAM_DUR_0) < abs(tick_dur - BITSTREAM_DUR_1)) else 0)
+# def bitstream_dur(t):
+#     tick_dur = time_pulse_us(det, 0, bitstream_max_pulse)
+#     rx_byte.append(1 if (abs(tick_dur - BITSTREAM_DUR_0) < abs(tick_dur - BITSTREAM_DUR_1)) else 0)
 
-det.irq(handler=bitstream_dur, trigger=Pin.IRQ_FALLING)
+# det.irq(handler=bitstream_dur, trigger=Pin.IRQ_FALLING)
 
 
 
@@ -217,6 +216,6 @@ def print_rx_byte(bit_list):
     chrs = rx_byte_string(bit_list)
     print("".join(chrs))
 
-def print_inbox_msg():
-    for chrint in tl.inbox._data:
+def print_inbox_msg(data):
+    for chrint in data:
         print(chr(chrint))

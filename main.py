@@ -1,15 +1,13 @@
 import gc
 
 from utime import sleep_ms, ticks_ms, ticks_diff
-from math import sin, pi
-from libraries.rgbled import RGBLED, WS2812
-from libraries.gpio import BUTTON_B_PIN, BUTTON_R_PIN, SWITCH_PIN, DETECTOR_PIN, LED_BUILTIN_PIN
+from libraries.rgbled import WS2812
+from libraries.gpio import BUTTON_B_PIN, BUTTON_R_PIN, SWITCH_PIN, LED_PIN
 from libraries.linda import Linda
 from machine import Pin
 
 # Pin Setup
-led = Pin(LED_BUILTIN_PIN, Pin.OUT)
-led.off()
+led = Pin(LED_PIN, Pin.OUT)
 button_B = Pin(BUTTON_B_PIN, Pin.IN, pull=Pin.PULL_DOWN)
 button_R = Pin(BUTTON_R_PIN, Pin.IN, pull=Pin.PULL_DOWN)
 switch = Pin(SWITCH_PIN, Pin.IN, pull=Pin.PULL_DOWN)
@@ -31,7 +29,11 @@ last_R_debounce_time = 0
 linda = Linda()
 linda.laser._toggle_tx(False)
 
-idle = True
+# Set initial idle state based on toggle switch
+if switch.value():
+    idle = True
+else:
+    idle = False
 active_tx_rx = False
 
 linda.laser.outbox._read_ascii('When Stubb had departed, Ahab stood for a while leaning over the bulwarks; and then, as had been usual with him of late, calling a sailor of the watch, he sent him below for his ivory stool, and also his pipe. Lighting the pipe at the binnacle lamp and planting the stool on the weather side of the deck, he sat and smoked. \
@@ -78,27 +80,25 @@ while True:
                 linda.laser.transmit_outbox(64)
                 print('done')
                 linda.laser._toggle_tx(False)
-                # Solid color cycle
-                ws.set_color(255, 0, 0)  # Red
-                sleep_ms(500)
-                ws.set_color(0, 255, 0)  # Green
-                sleep_ms(500)
-                ws.set_color(0, 0, 255)  # Blue
-                sleep_ms(500)
-                ws.off()
-                active_tx_rx = False
             else:
                 ws.set_color(0,0,255)
                 led.on()
                 linda.laser.start_rx(duration=2)
-                led.off()
-                active_tx_rx = False
-        led.off()
-        ws.set_color(0,255,0)
-
+                print('rx')
+            
+            active_tx_rx = False
+            ws.set_color(0,255,0)
+            led.off()
 
     # Check for button presses
     check_button_presses()
-    idle = switch.value()
+    # Handle switching of idle state
+    if switch.value() != last_switch_state:
+        if switch.value():
+            idle = True
+        else:
+            idle = False
+            ws.set_color(0,255,0)
+        last_switch_state = switch.value()
     gc.collect()
-    sleep_ms(10)
+    sleep_ms(5)
