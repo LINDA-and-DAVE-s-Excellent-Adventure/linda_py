@@ -2,12 +2,14 @@
 from micropython import const
 
 # Sparkfun Thing Plus
-RLED_PIN = const(19)
-GLED_PIN = const(18)
-BLED_PIN = const(17)
+# RLED_PIN = const(19)
+# GLED_PIN = const(18)
+# BLED_PIN = const(17)
+LED_BUILTIN_PIN = const(25)
 DETECTOR_PIN = const(20)
 LASER_PIN = const(21)
-BUTTON_PIN = const(22)
+BUTTON_B_PIN = const(17)
+BUTTON_R_PIN = const(19)
 SWITCH_PIN = const(16)
 WS2812_PIN = const(8)
 QWIIC_SCL = const(7)
