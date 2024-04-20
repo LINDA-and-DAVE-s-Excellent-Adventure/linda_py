@@ -16,6 +16,7 @@ TEST_BITSTREAM = True
 # (1ms, 3ms, 4ms, 2ms)
 # Average bit duration of 5ms -> 200bps data rate
 BITSTREAM_TIMING = (1000000, 3000000, 4000000, 2000000)
+# BITSTREAM_TIMING = (300000, 700000, 600000, 400000)
 BITSTREAM_MAX_PULSE_US = int((BITSTREAM_TIMING[2] + BITSTREAM_TIMING[3]) / 1000)
 BITSTREAM_DUR_0 = BITSTREAM_TIMING[0]/1000
 BITSTREAM_DUR_1 = BITSTREAM_TIMING[2]/1000
@@ -62,6 +63,7 @@ class LindaLaser(object):
             irq (irq): Default single-argument of micropython interrupt callbacks
         """
         tick_dur = time_pulse_us(self.detector, 0, BITSTREAM_MAX_PULSE_US)
+        # print(tick_dur)
         tick_val = 0 if (abs(tick_dur - BITSTREAM_DUR_0) < abs(tick_dur - BITSTREAM_DUR_1)) else 1
         if self.rx_flag:
             self.rx_byte.append(tick_val)
@@ -114,7 +116,6 @@ class LindaLaser(object):
         if len(self.rx_byte) != 0:
             print('resetting')
             self.rx_byte = array.array('i')
-            print(self.rx_byte)
         start = ticks_us()
         self.rx_flag = True
         while ticks_diff(ticks_us(), start) < (duration*1000000):
