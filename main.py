@@ -6,7 +6,7 @@ from utime import sleep_ms
 from machine import Pin
 
 from libraries.rgbled import WS2812
-from libraries.gpio import BUTTON_B_PIN, BUTTON_R_PIN, SWITCH_PIN, LED_PIN, DETECTOR_PIN
+from libraries.gpio import BUTTON_B_PIN, BUTTON_R_PIN, SWITCH_PIN, LED_PIN
 from libraries.linda import Linda
 
 # Logging setup
@@ -86,15 +86,19 @@ while True:
 
     if active_tx_rx:
         if linda.laser.tx_toggle:
-            print("Transmitting")
+            log.info("Transmit begin")
             ws.set_color(255,0,0)
             if switch.value():
                 linda.laser.transmit_outbox(64)
+            else:
+                linda.laser.transmit_outbox()
+            log.info("Transmit complete")
             linda.laser._toggle_tx(False)
         else:
-            print("Receiving")
+            log.info("Rx begin")
             ws.set_color(0,0,255)
             linda.laser.start_rx()
+            log.info("Rx complete")
         
         active_tx_rx = False
 

@@ -1,5 +1,6 @@
 from machine import Pin, bitstream, time_pulse_us
 from utime import ticks_us, ticks_diff
+from micropython import schedule
 import gc
 import array
 import logging
@@ -31,11 +32,11 @@ class LindaLaser(object):
         self.outbox = outbox
         self.tx_toggle = True
         self.rx_flag = False
-        self.rx_byte = array.array('i')
+        self.rx_bits = array.array('i')
         self.rx_chrs = []
+        self.tick_dur = 0
         # Init the laser and detector pins
         self._init_pins(laser_pin, detector_pin)
-        # log.debug('New LindaLaser created')
 
     def __repr__(self) -> str:
         return "Laser!"
@@ -67,15 +68,10 @@ class LindaLaser(object):
         Args:
             irq (irq): Default single-argument of micropython interrupt callbacks
         """
-        tick_dur = time_pulse_us(self.detector, 0, BITSTREAM_MAX_PULSE_US)
-        # print(tick_dur)
-        tick_val = 0 if (abs(tick_dur - BITSTREAM_DUR_0) < abs(tick_dur - BITSTREAM_DUR_1)) else 1
         if self.rx_flag:
-            self.rx_byte.append(tick_val)
-        led.value(tick_val)    
-
-    def _reset_rx_byte(self):
-        self.rx_byte = array.array('i')
+            self.tick_dur = time_pulse_us(self.detector, 0, BITSTREAM_MAX_PULSE_US)
+            schedule(self.rx_bits.append, (0 if (abs(self.tick_dur - BITSTREAM_DUR_0) < abs(self.tick_dur - BITSTREAM_DUR_1)) else 1))
+            # self.rx_bits.append(0 if (abs(self.tick_dur - BITSTREAM_DUR_0) < abs(self.tick_dur - BITSTREAM_DUR_1)) else 1)
 
     def _transmit_buffer(self, outbox_mv: memoryview, start_idx: int=0, end_idx: int=32) -> None:
         """
@@ -117,40 +113,38 @@ class LindaLaser(object):
             duration (int, optional): Duration to listen, in seconds. Defaults to 5.
         """
         # Sometimes junk data gets in the rx_byte before we start the Rx transaction
-        # If that's true, reset self.rx_byte
-        if len(self.rx_byte) != 0:
-            print('resetting')
-            self.rx_byte = array.array('i')
+        # If that's true, reset self.rx_bits
+        if len(self.rx_bits) != 0:
+            print('Resetting')
+            self.rx_bits = array.array('i')
         start = ticks_us()
         self.rx_flag = True
+        gc.enable()
         while ticks_diff(ticks_us(), start) < (duration*1000000):
             # Stay in this loop until the Rx transaction has lasted the given duration
             pass
+        gc.disable()
         self.rx_flag = False
         gc.collect()
-        if len(self.rx_byte) > 0:
-            rx_str = print_rx_byte(self.rx_byte)
+        if len(self.rx_bits) > 0:
+            print("Rx complete, starting decom...")
+            rx_str = self.rx_bits_to_str()
             print(rx_str)
-            self.inbox._read_ascii(print_rx_byte(self.rx_byte))
-            self.rx_byte = array.array('i')
+            gc.collect()
+            self.inbox._read_ascii(rx_str)
+            self.rx_bits = array.array('i')
             print("Rx successful!")
         else:
-            print("No data was recieved during Rx period")
+            print("No data was received during Rx period")
+            
+    def rx_bits_to_str(self):
+        byte_string = ""
+        for bit in self.rx_bits:
+            byte_string += str(bit)
+            if len(byte_string) == 8:
+                byte_int = int(byte_string, 2)
+                self.rx_chrs.append(chr(byte_int))
+                byte_string = ""
+        return ("".join(self.rx_chrs))
                     
 tl = LindaLaser(InboxBuffer(1024), OutboxBuffer(1024))
-
-def rx_byte_chrs(bit_list):
-    chrs = []
-    byte_string = ""
-    for bit in bit_list:
-        byte_string += str(bit)
-        if len(byte_string) == 8:
-            byte_int = int(byte_string, 2)
-            chrs.append(chr(byte_int))
-            byte_string = ""
-
-    return chrs
-
-def print_rx_byte(bit_list):
-    chrs = rx_byte_chrs(bit_list)
-    return ("".join(chrs))
