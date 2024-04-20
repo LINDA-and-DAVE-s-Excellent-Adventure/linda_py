@@ -4,7 +4,9 @@ import gc
 import array
 
 from memory import InboxBuffer, OutboxBuffer
-from gpio import LASER_PIN, DETECTOR_PIN
+from gpio import LASER_PIN, DETECTOR_PIN, LED_PIN
+
+led = Pin(LED_PIN, Pin.OUT)
 
 gc.disable()
 
@@ -60,8 +62,10 @@ class LindaLaser(object):
             irq (irq): Default single-argument of micropython interrupt callbacks
         """
         tick_dur = time_pulse_us(self.detector, 0, BITSTREAM_MAX_PULSE_US)
+        tick_val = 0 if (abs(tick_dur - BITSTREAM_DUR_0) < abs(tick_dur - BITSTREAM_DUR_1)) else 1
         if self.rx_flag:
-            self.rx_byte.append(0 if (abs(tick_dur - BITSTREAM_DUR_0) < abs(tick_dur - BITSTREAM_DUR_1)) else 1)
+            self.rx_byte.append(tick_val)
+        led.value(tick_val)    
 
     def _reset_rx_byte(self):
         self.rx_byte = array.array('i')
@@ -89,8 +93,10 @@ class LindaLaser(object):
             msg_len (int, optional): The length in bytes of the message to send. Defaults to -1,
                 which indicates transmission of the entire outbox message.
         """
+        if msg_len == 0:
+            print('no message to transmit')
         # Get the length of the outbox message
-        if msg_len == -1:
+        elif msg_len == -1:
             self._transmit_buffer(self.outbox._msg, end_idx=len(self.outbox))
         else:
             self._transmit_buffer(self.outbox._msg, end_idx=msg_len)
