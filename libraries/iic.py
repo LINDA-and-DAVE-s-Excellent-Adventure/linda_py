@@ -4,7 +4,7 @@ from memory import AmsatI2CBuffer
 
 class LindaI2C:
     def __init__(self, i2c_buffer: AmsatI2CBuffer) -> None:
-        self.i2c = I2C(0, scl=QWIIC_SCL, sda=QWIIC_SDA, freq=400_000)
+        self.i2c = I2C(0, scl=Pin(QWIIC_SCL), sda=Pin(QWIIC_SDA), freq=400_000)
         self.i2c.scan()
         
     def __repr__(self) -> str:

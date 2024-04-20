@@ -19,5 +19,11 @@
     "python.analysis.typeshedPaths": [
         ".vscode/Pico-W-Stub"
     ],
-    "python.analysis.autoImportCompletions": true
+    "python.analysis.autoImportCompletions": true,
+    "cSpell.words": [
+        "AMSAT",
+        "gpio",
+        "micropython",
+        "QWIIC"
+    ]
 }

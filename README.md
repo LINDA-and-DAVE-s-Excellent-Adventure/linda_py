@@ -22,11 +22,18 @@ The Laser Interface Networking Doohickey for AMSAT (LINDA) is a subsystem which 
 
 This should be able to be run on any RP2040-based microcontroller, although I could only get reliable timer usage from Sparkfun boards: [Sparkfun Pro Micro RP2040](https://www.sparkfun.com/products/18288) and [Sparkfun Thing Plus RP2040](https://www.sparkfun.com/products/17745).
 
-#### Micropython
+#### Micropython on RP2040
 
 There are plenty of tutorials on how to set up your microcontroller for Micropython, so I won't do that here. Go to the [MicroPython downloads page](https://micropython.org/download/?mcu=rp2040) and get your microcontroller's firmware, flash it, etc etc.
 
 I found that flashing the Sparkfun Thing Plus RP2040 firmware caused intermittant issues, which were remedied by flashing the normal Raspberry Pi Pico version instead.
+
+#### Micropython Stubs
+You should install the [Micropython Stubs](https://github.com/Josverl/micropython-stubs) to make life easier while developing in an IDE. The micropython-stubs github repo has more information.
+
+The simplest approach is to install in a typings folder. Run the following command in the directory of this repo: ```pip install -U micropython-rp2-stubs micropython-rp2-pico-stubs --no-user --target ./typings```
+
+That will install the relevant stubs in a ```typings/``` directory.
 
 #### VS Code Environment
 
