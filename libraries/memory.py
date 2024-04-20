@@ -2,10 +2,6 @@
 import gc
 from sys import stdout
 
-OUTBOX_HEADER_SIZE = 3
-INBOX_HEADER_SIZE = 7
-
-
 class MemoryBuffer:
     def __init__(self, size_bytes) -> None:
         # Initialize the memory off of the heap
@@ -23,7 +19,6 @@ class MemoryBuffer:
     def _memoryview_int(self, mem: memoryview) -> int:
         """
         Given a memoryview, cast its entirety to a big-endiant int and return
-
 
         Args:
             mem (memoryview): The memoryview to cast to an int. Typically a self variable

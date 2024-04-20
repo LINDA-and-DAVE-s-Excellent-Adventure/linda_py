@@ -2,6 +2,7 @@ from machine import Pin, bitstream, time_pulse_us
 from utime import ticks_us, ticks_diff
 import gc
 import array
+import logging
 
 from memory import InboxBuffer, OutboxBuffer
 from gpio import LASER_PIN, DETECTOR_PIN, LED_PIN
@@ -21,6 +22,8 @@ BITSTREAM_MAX_PULSE_US = int((BITSTREAM_TIMING[2] + BITSTREAM_TIMING[3]) / 1000)
 BITSTREAM_DUR_0 = BITSTREAM_TIMING[0]/1000
 BITSTREAM_DUR_1 = BITSTREAM_TIMING[2]/1000
 
+# log = logging.getLogger('lindalaser')
+
 class LindaLaser(object):
     def __init__(self, inbox: InboxBuffer, outbox: OutboxBuffer, 
                  laser_pin: int=LASER_PIN, detector_pin: int=DETECTOR_PIN) -> None:
@@ -32,6 +35,7 @@ class LindaLaser(object):
         self.rx_chrs = []
         # Init the laser and detector pins
         self._init_pins(laser_pin, detector_pin)
+        # log.debug('New LindaLaser created')
 
     def __repr__(self) -> str:
         return "Laser!"
@@ -53,6 +57,7 @@ class LindaLaser(object):
             tx_toggle (bool): State toggle boolean. TRUE if Tx, FALSE if Rx
         """
         self.tx_toggle = tx_toggle
+        
 
     def _rx_bitstream(self, irq):
         """

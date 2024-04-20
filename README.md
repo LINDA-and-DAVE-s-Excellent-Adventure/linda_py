@@ -29,11 +29,27 @@ There are plenty of tutorials on how to set up your microcontroller for Micropyt
 I found that flashing the Sparkfun Thing Plus RP2040 firmware caused intermittant issues, which were remedied by flashing the normal Raspberry Pi Pico version instead.
 
 #### Micropython Stubs
+
 You should install the [Micropython Stubs](https://github.com/Josverl/micropython-stubs) to make life easier while developing in an IDE. The micropython-stubs github repo has more information.
 
 The simplest approach is to install in a typings folder. Run the following command in the directory of this repo: ```pip install -U micropython-rp2-stubs micropython-rp2-pico-stubs --no-user --target ./typings```
 
 That will install the relevant stubs in a ```typings/``` directory.
+
+#### Micropython Libraries
+
+Micropython supports the loading of packages to a microcontroller. See the [Micropython Wiki](https://docs.micropython.org/en/latest/reference/packages.html#packages) for details on package management.
+
+Packages which are included in the [micropython-lib](https://github.com/micropython/micropython-lib) can be installed easily. The LINDA project requires the following:
+
+* os
+* logging
+
+They can be installed by following the Wiki instructions to install ```mpremote``` and, with your RP2040 controller connected to the computer (after flashing the Micropython firmware), running: ```mpremote mip install [library]```
+
+This will download the given library from the micropython-lib and freeze the files onto the filesystem of the attached controller.
+
+NOTE: if you clear the flash of your microcontroller for any reason, you will have to re-install the libraries as outlined above
 
 #### VS Code Environment
 
