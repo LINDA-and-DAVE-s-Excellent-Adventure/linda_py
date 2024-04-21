@@ -41,13 +41,13 @@ class MemoryBuffer:
             str: Empty string to signal end of ASCII text and provide newline
         """
         gc.enable()
-        start = 0
         decoded_chunk = ''
         if self._data_len == 0:
             print("This MemoryBuffer is empty!")
         else:
             if print_len == -1:
                 print_len = self._data_len
+            start = 0
             while start < print_len:
                 chunk = self._data[start: start+chunk_size]
                 decoded_chunk = bytes(chunk).decode(encoding)
@@ -83,14 +83,12 @@ class OutboxBuffer(MemoryBuffer):
     def __init__(self, size_bytes) -> None:
         super().__init__(size_bytes)
         self.msg_ready = False
-        # Bytes 3-n of _data store the outgoing message
-        self._msg = memoryview(self._data[3:])
 
     def __str__(self) -> str:
         return self._print_data_ascii()
     
     def __repr__(self) -> str:
-        return f"OutboxBuffer: {len(self._msg)} bytes ({len(self._data)} bytes total)\n\
+        return f"OutboxBuffer: {len(self._data)} bytes ({len(self._data)} bytes total)\n\
                     Message length = {self._data_len}\n\
                     Msg_ready = {self.msg_ready}"
     
@@ -108,10 +106,7 @@ class OutboxBuffer(MemoryBuffer):
         Args:
             ready (bool, optional): Whether the outbox _msg is ready to send. Defaults to True.
         """
-        if ready:
-            self.msg_ready = True
-        else:
-            self.msg_ready = False
+        self.msg_ready = ready
 
 class InboxBuffer(MemoryBuffer):
     def __init__(self, size_bytes) -> None:
@@ -134,8 +129,4 @@ class InboxBuffer(MemoryBuffer):
         Args:
             recording (bool, optional): Whether to record incoming data. Defaults to True.
         """
-        if recording:
-            self.recording = 1
-        else:
-            self.recording = 0
-        self.recording = bool(self.recording)
+        self.recording = bool(1 if recording else 0)

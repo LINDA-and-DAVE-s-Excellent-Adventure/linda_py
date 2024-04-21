@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 log = logging.getLogger('linda')
 for handler in logging.getLogger().handlers:
     handler.setFormatter(logging.Formatter("[%(levelname)s]:%(name)s:%(message)s")) # type: ignore
-log.info('Log configured!')
+log.info('Main log configured!')
 
 # Pin Setup
 led = Pin(LED_PIN, Pin.OUT)
@@ -57,11 +57,8 @@ def handle_button_B(irq):
 
 def toggle_idle(irq):
     global idle
-    if switch.value():
-        idle = True
-    else:
-        idle = False
-        # ws.set_color(0,255,0)
+    idle = bool(switch.value())
+    # ws.set_color(0,255,0)
 
 button_R.irq(handler=handle_button_R, trigger=Pin.IRQ_RISING)
 button_B.irq(handler=handle_button_B, trigger=Pin.IRQ_RISING)
@@ -70,19 +67,22 @@ switch.irq(handler=toggle_idle, trigger=(Pin.IRQ_FALLING|Pin.IRQ_RISING))
 # Main functional loop
 # If LINDA is idle, it will cycle through pretty colors on the builtin Neopixel rgbled
 #    this also acts as an alignment mode, where the attached LED will illuminate on laser detector activity
-# If LINDA is active, it will either transmit or recieve upon Red/Blue button press
+# If LINDA is active, it will either transmit or receive upon Red/Blue button press
 #    Red button press will transmit data from the LindaLaser outbox memory buffer
-#    Blue button press will start the recieve routine which will capture incoming bits and save the resultant
+#    Blue button press will start the receive routine which will capture incoming bits and save the resultant
 #        ASCII string to the LindaLaser inbox memory buffer
 # At the end of the main loop, run garbage collection and take a short rest
 while True:
-    linda.laser.laser.on()
     ws.rgb_loop_step()
-    # Alignment while idling -- turn builtin LED on when laser is detected
-    if not linda.laser.detector.value():
-        led.on()
+    if switch.value():
+        # linda.laser.laser.off()
+        # Alignment while idling -- turn builtin LED on when laser is detected
+        if not linda.laser.detector.value():
+            led.on()
+        else:
+            led.off()
     else:
-        led.off()
+        linda.laser.laser.on()
 
     if active_tx_rx:
         if linda.laser.tx_toggle:

@@ -4,9 +4,17 @@ from micropython import schedule
 import gc
 import array
 import logging
+import sys
 
 from memory import InboxBuffer, OutboxBuffer
 from gpio import LASER_PIN, DETECTOR_PIN, LED_PIN
+
+# Logging setup
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+log = logging.getLogger('laserlinda')
+for handler in logging.getLogger().handlers:
+    handler.setFormatter(logging.Formatter("[%(levelname)s]:%(name)s:%(message)s")) # type: ignore
+log.info('Laser log configured!')
 
 led = Pin(LED_PIN, Pin.OUT)
 
@@ -23,7 +31,6 @@ BITSTREAM_MAX_PULSE_US = int((BITSTREAM_TIMING[2] + BITSTREAM_TIMING[3]) / 1000)
 BITSTREAM_DUR_0 = BITSTREAM_TIMING[0]/1000
 BITSTREAM_DUR_1 = BITSTREAM_TIMING[2]/1000
 
-# log = logging.getLogger('lindalaser')
 
 class LindaLaser(object):
     def __init__(self, inbox: InboxBuffer, outbox: OutboxBuffer, 
@@ -97,16 +104,19 @@ class LindaLaser(object):
                 which indicates transmission of the entire outbox message.
         """
         if msg_len == 0:
-            print('no message to transmit')
+            log.info('No message to transmit')
         # Get the length of the outbox message
         elif msg_len == -1:
-            self._transmit_buffer(self.outbox._msg, end_idx=len(self.outbox))
+            log.info(f"Transmitting entire outbox ({len(self.outbox)} bytes)")
+            self._transmit_buffer(self.outbox._data, end_idx=len(self.outbox))
         else:
-            self._transmit_buffer(self.outbox._msg, end_idx=msg_len)
+            log.info(f"Transmitting {msg_len} bytes")
+            self._transmit_buffer(self.outbox._data, end_idx=msg_len)
+
 
     def start_rx(self, duration: int=5):
         """
-        Recieves laser detector input as data for a given duration. Converts incoming bits to byte integers
+        Receives laser detector input as data for a given duration. Converts incoming bits to byte integers
         and writes to inbox memory buffer
     
         Args:
@@ -115,7 +125,7 @@ class LindaLaser(object):
         # Sometimes junk data gets in the rx_byte before we start the Rx transaction
         # If that's true, reset self.rx_bits
         if len(self.rx_bits) != 0:
-            print('Resetting')
+            log.info('Resetting')
             self.rx_bits = array.array('i')
         start = ticks_us()
         self.rx_flag = True
@@ -127,15 +137,18 @@ class LindaLaser(object):
         self.rx_flag = False
         gc.collect()
         if len(self.rx_bits) > 0:
-            print("Rx complete, starting decom...")
-            rx_str = self.rx_bits_to_str()
-            print(rx_str)
-            gc.collect()
-            self.inbox._read_ascii(rx_str)
-            self.rx_bits = array.array('i')
-            print("Rx successful!")
+            self.decom_rx_bits()
         else:
-            print("No data was received during Rx period")
+            log.info("No data was received during Rx period")
+
+    def decom_rx_bits(self):
+        log.info("Rx complete, starting decom...")
+        rx_str = self.rx_bits_to_str()
+        log.info(rx_str)
+        gc.collect()
+        self.inbox._read_ascii(rx_str)
+        self.rx_bits = array.array('i')
+        log.info("Rx successful!")
             
     def rx_bits_to_str(self):
         byte_string = ""
