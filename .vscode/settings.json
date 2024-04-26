@@ -22,7 +22,10 @@
     "python.analysis.autoImportCompletions": true,
     "cSpell.words": [
         "AMSAT",
+        "bitstream",
+        "decom",
         "gpio",
+        "lindalaser",
         "micropython",
         "QWIIC"
     ]
