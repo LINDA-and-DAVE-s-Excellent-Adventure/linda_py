@@ -10,7 +10,7 @@ The logic that runs LINDA is contained here. I'll include the flow charts and di
 
 ### Wiring Diagram
 
-![Linda Wiring Diagram](../doc/linda_wiring_diagram_nomodsplit.jpg)
+![Linda Wiring Diagram](../doc/linda_wiring_diagram.png)
 
 ### Laser Submodule Flowchart
 
