@@ -58,7 +58,6 @@ def handle_button_B(irq):
 def toggle_idle(irq):
     global idle
     idle = bool(switch.value())
-    # ws.set_color(0,255,0)
 
 button_R.irq(handler=handle_button_R, trigger=Pin.IRQ_RISING)
 button_B.irq(handler=handle_button_B, trigger=Pin.IRQ_RISING)
@@ -74,33 +73,30 @@ switch.irq(handler=toggle_idle, trigger=(Pin.IRQ_FALLING|Pin.IRQ_RISING))
 # At the end of the main loop, run garbage collection and take a short rest
 while True:
     ws.rgb_loop_step()
-    if switch.value():
-        # linda.laser.laser.off()
+    if idle:
+        linda.laser.laser.on()
         # Alignment while idling -- turn builtin LED on when laser is detected
         if not linda.laser.detector.value():
             led.on()
         else:
             led.off()
-    else:
-        linda.laser.laser.on()
 
-    if active_tx_rx:
-        if linda.laser.tx_toggle:
-            log.info("Transmit begin")
-            ws.set_color(255,0,0)
-            if switch.value():
-                linda.laser.transmit_outbox(64)
-            else:
+    else:
+        linda.laser.laser.off()
+        if active_tx_rx:
+            if linda.laser.tx_toggle:
+                log.info("Transmit begin")
+                ws.set_color(255,0,0)
                 linda.laser.transmit_outbox()
-            log.info("Transmit complete")
-            linda.laser._toggle_tx(False)
-        else:
-            log.info("Rx begin")
-            ws.set_color(0,0,255)
-            linda.laser.start_rx()
-            log.info("Rx complete")
-        
-        active_tx_rx = False
+                log.info("Transmit complete")
+                linda.laser._toggle_tx(False)
+            else:
+                log.info("Rx begin")
+                ws.set_color(0,0,255)
+                linda.laser.start_rx()
+                log.info("Rx complete")
+            
+            active_tx_rx = False
 
     gc.collect()
     sleep_ms(1)
