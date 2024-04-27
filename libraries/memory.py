@@ -1,6 +1,15 @@
 # Header sizes in bytes
 import gc
+import logging
+import sys
 from sys import stdout
+
+# Logging setup
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+log = logging.getLogger('memorylinda')
+for handler in logging.getLogger().handlers:
+    handler.setFormatter(logging.Formatter("[%(levelname)s]:%(name)s:%(message)s")) # type: ignore
+log.info("Memory log configured!")
 
 class MemoryBuffer:
     def __init__(self, size_bytes) -> None:
@@ -65,7 +74,7 @@ class MemoryBuffer:
 '        """
         gc.collect()
         if len(_msg) > len(self._data):
-            print(f"Your message ({len(_msg)} bytes) is larger than the message buffer ({len(self._data)} bytes)\n"\
+            log.info(f"Your message ({len(_msg)} bytes) is larger than the message buffer ({len(self._data)} bytes)\n"\
                   "The message will be truncated.")
         # Set the message length
         self._data_len = len(_msg)

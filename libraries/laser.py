@@ -1,4 +1,4 @@
-from machine import Pin, bitstream, time_pulse_us
+from machine import Pin, bitstream, time_pulse_us, disable_irq, enable_irq
 from utime import ticks_us, ticks_diff
 from micropython import schedule
 import gc
@@ -90,7 +90,9 @@ class LindaLaser(object):
             start_idx (int): Index of memoryview byte to begin transmitting
             end_idx (int): Index of memoryview bytes to end transmitting
         """
+        state = disable_irq()
         bitstream(self.laser, 0, BITSTREAM_TIMING, outbox_mv[start_idx:end_idx])
+        enable_irq(state)
         gc.collect()
         self.laser.off()
 
@@ -125,8 +127,9 @@ class LindaLaser(object):
         # Sometimes junk data gets in the rx_byte before we start the Rx transaction
         # If that's true, reset self.rx_bits
         if len(self.rx_bits) != 0:
-            log.info('Resetting')
+            log.info('Resetting rx_bits')
             self.rx_bits = array.array('i')
+        # Reset 
         start = ticks_us()
         self.rx_flag = True
         gc.enable()
@@ -142,6 +145,9 @@ class LindaLaser(object):
             log.info("No data was received during Rx period")
 
     def decom_rx_bits(self):
+        """
+        Take an array of 1's and 0's, and turn them to an ASCII string to read to the inbox
+        """
         log.info("Rx complete, starting decom...")
         rx_str = self.rx_bits_to_str()
         log.info(rx_str)
@@ -151,6 +157,12 @@ class LindaLaser(object):
         log.info("Rx successful!")
             
     def rx_bits_to_str(self):
+        """
+        Converts an array of 1's and 0's to 8-bit chars, then combine into a string to return
+
+        Returns:
+            _type_: _description_
+        """
         byte_string = ""
         for bit in self.rx_bits:
             byte_string += str(bit)

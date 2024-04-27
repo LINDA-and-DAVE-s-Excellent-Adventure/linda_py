@@ -6,18 +6,6 @@ Laser Interface Networking Doohickey for AMSAT -- MicroPython Implementation
 
 The Laser Interface Networking Doohickey for AMSAT (LINDA) is a subsystem which implements proof-of-concept laser communications for the [AMSAT CubeSatSim](https://github.com/alanbjohnston/CubeSatSim). It is designed around a Sparkfun Thing Plus RP2040 microcontroller, and uses a generic 650nm laser pointer and laser sensor to implement a basic free-space optical communication link between two LINDA subsystems.
 
-### Block Diagram
-
-![Linda Block Diagram](./doc/LINDA%20Block%20Diagram.jpeg)
-
-### Wiring Diagram
-
-![Linda Wiring Diagram](./doc/linda_wiring_diagram_nomodsplit.jpg)
-
-### Laser Submodule Flowchart
-
-![LINDA Laser Submodule Flowchart](./doc/LINDA%20Laser%20Flowchart.jpeg)
-
 ### Installation
 
 This should be able to be run on any RP2040-based microcontroller, although I could only get reliable timer usage from Sparkfun boards: [Sparkfun Pro Micro RP2040](https://www.sparkfun.com/products/18288) and [Sparkfun Thing Plus RP2040](https://www.sparkfun.com/products/17745).
@@ -26,7 +14,7 @@ This should be able to be run on any RP2040-based microcontroller, although I co
 
 There are plenty of tutorials on how to set up your microcontroller for Micropython, so I won't do that here. Go to the [MicroPython downloads page](https://micropython.org/download/?mcu=rp2040) and get your microcontroller's firmware, flash it, etc etc.
 
-I found that flashing the Sparkfun Thing Plus RP2040 firmware caused intermittant issues, which were remedied by flashing the normal Raspberry Pi Pico version instead.
+I found that flashing the Sparkfun Thing Plus RP2040 firmware caused intermittent issues, which were remedied by flashing the normal Raspberry Pi Pico version instead.
 
 #### Micropython Stubs
 
@@ -34,7 +22,7 @@ You should install the [Micropython Stubs](https://github.com/Josverl/micropytho
 
 The simplest approach is to install in a typings folder. Run the following command in the directory of this repo: ```pip install -U micropython-rp2-stubs micropython-rp2-pico-stubs --no-user --target ./typings```
 
-That will install the relevant stubs in a ```typings/``` directory.
+That will install the relevant stubs in a ```typings/``` directory. Remember to add it to your .gitignore if it gets pulled in to the git working tree.
 
 #### Micropython Libraries
 
