@@ -6,7 +6,7 @@ from utime import sleep_ms
 from machine import Pin
 
 from libraries.rgbled import WS2812
-from libraries.gpio import BUTTON_B_PIN, BUTTON_R_PIN, SWITCH_PIN, LED_PIN
+from libraries.gpio import BUTTON_TX_PIN, BUTTON_RX_PIN, SWITCH_PIN, LED_PIN
 from libraries.linda import Linda
 
 # Logging setup
@@ -19,8 +19,8 @@ log.info('Main log configured!')
 # Pin Setup
 led = Pin(LED_PIN, Pin.OUT)
 switch = Pin(SWITCH_PIN, Pin.IN, pull=Pin.PULL_DOWN)
-button_B = Pin(BUTTON_B_PIN, Pin.IN, pull=Pin.PULL_DOWN)
-button_R = Pin(BUTTON_R_PIN, Pin.IN, pull=Pin.PULL_DOWN)
+button_tx = Pin(BUTTON_TX_PIN, Pin.IN, pull=Pin.PULL_DOWN)
+button_rx = Pin(BUTTON_RX_PIN, Pin.IN, pull=Pin.PULL_DOWN)
 
 # Disable automatic garbage collection
 gc.disable()
@@ -59,8 +59,8 @@ def toggle_idle(irq):
     global idle
     idle = bool(switch.value())
 
-button_R.irq(handler=handle_button_R, trigger=Pin.IRQ_RISING)
-button_B.irq(handler=handle_button_B, trigger=Pin.IRQ_RISING)
+button_rx.irq(handler=handle_button_R, trigger=Pin.IRQ_RISING)
+button_tx.irq(handler=handle_button_B, trigger=Pin.IRQ_RISING)
 switch.irq(handler=toggle_idle, trigger=(Pin.IRQ_FALLING|Pin.IRQ_RISING))
 
 # Main functional loop
@@ -92,8 +92,9 @@ while True:
                 linda.laser._toggle_tx(False)
             else:
                 log.info("Rx begin")
+                linda.laser.laser.on()
                 ws.set_color(0,0,255)
-                linda.laser.start_rx()
+                linda.laser.start_rx(10)
                 log.info("Rx complete")
             
             active_tx_rx = False

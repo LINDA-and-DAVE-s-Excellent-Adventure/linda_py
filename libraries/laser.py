@@ -77,8 +77,8 @@ class LindaLaser(object):
         """
         if self.rx_flag:
             self.tick_dur = time_pulse_us(self.detector, 0, BITSTREAM_MAX_PULSE_US)
-            schedule(self.rx_bits.append, (0 if (abs(self.tick_dur - BITSTREAM_DUR_0) < abs(self.tick_dur - BITSTREAM_DUR_1)) else 1))
-            # self.rx_bits.append(0 if (abs(self.tick_dur - BITSTREAM_DUR_0) < abs(self.tick_dur - BITSTREAM_DUR_1)) else 1)
+            # schedule(self.rx_bits.append, (0 if (abs(self.tick_dur - BITSTREAM_DUR_0) < abs(self.tick_dur - BITSTREAM_DUR_1)) else 1))
+            self.rx_bits.append(0 if (abs(self.tick_dur - BITSTREAM_DUR_0) < abs(self.tick_dur - BITSTREAM_DUR_1)) else 1)
 
     def _transmit_buffer(self, outbox_mv: memoryview, start_idx: int=0, end_idx: int=32) -> None:
         """
@@ -149,12 +149,13 @@ class LindaLaser(object):
         Take an array of 1's and 0's, and turn them to an ASCII string to read to the inbox
         """
         log.info("Rx complete, starting decom...")
+        gc.enable()
         rx_str = self.rx_bits_to_str()
         log.info(rx_str)
-        gc.collect()
         self.inbox._read_ascii(rx_str)
         self.rx_bits = array.array('i')
         log.info("Rx successful!")
+        gc.disable()
             
     def rx_bits_to_str(self):
         """

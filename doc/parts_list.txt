@@ -1,0 +1,9 @@
+Parts required to make a single LINDA subsystem:
+
+* Sparkfun Pro Micro RP2040 -- https://www.amazon.com/gp/product/B09KDS6CGN/ref=ox_sc_act_title_7?smid=A33HV3N1GS7LPU&psc=1
+* Waveshare Laser Receiver/Transmitter Module -- https://www.amazon.com/gp/product/B074P4YZW3/ref=ox_sc_act_title_6?smid=AA80HCB088OD&psc=1
+* Prototype Solderable Breadboard, 1/4 size (one needed per LINDA) -- 
+* SS8050 NPN Transistor (one needed per LINDA)
+* Breadboard jumper wires
+* 12-pin headers (two needed per LINDA w/ Pro Micro)
+* Male header pins

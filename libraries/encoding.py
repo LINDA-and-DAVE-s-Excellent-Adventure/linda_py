@@ -90,7 +90,7 @@ def _encode_ascii(data_string):
         
         # Finally set 0th bit in encoded_bits to parity of entire message for double error detection
         total_parity = sum(encoded_bits) % 2
-        encoded_bits[0] = total_parity      
+        encoded_bits[0] = total_parity
 
         print(encoded_bits)  
                         
